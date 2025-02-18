@@ -8,25 +8,31 @@
 BLEServer *pServer = NULL;
 BLECharacteristic *pCharacteristic = NULL;
 
-bool deviceConnected = false;
-bool oldDeviceConnected = false;
-
 #define SERVICE_UUID "621c7b43-a755-4456-b3e5-946a58bf20d9"
 #define CHARACTERISTIC_UUID "2a08da31-68a4-4047-92af-95145bb7bd07"
 
-TourneyMakerScoreboard::TourneyMakerScoreboard(String name) {
+TourneyMakerScoreboard::TourneyMakerScoreboard(std::string name) {
     this->name = name;
 }
 
-
 class MyServerCallbacks : public BLEServerCallbacks {
+    TourneyMakerScoreboard* scoreboard;
+
     public:
+        MyServerCallbacks(TourneyMakerScoreboard *scoreboard) {
+            this->scoreboard = scoreboard;
+        }
         void onConnect(BLEServer *pServer) {
-            deviceConnected = true;
+            scoreboard->deviceConnected = true;
+            Serial.println("connected");
         };
 
         void onDisconnect(BLEServer *pServer) {
-            deviceConnected = false;
+            scoreboard->deviceConnected = false;
+            Serial.println("disconnected");
+            delay(500);                   // give the bluetooth stack the chance to get things ready
+            pServer->startAdvertising();  // restart advertising
+            Serial.println("start advertising");
         }
 };
   
@@ -49,16 +55,16 @@ class MyServerCallbacks : public BLEServerCallbacks {
 
   };
 
-TourneyMakerScoreboard* TourneyMakerScoreboard::setup(String name) {
-
+TourneyMakerScoreboard* TourneyMakerScoreboard::setup(std::string name) {
+    Serial.println(("Initializing scoreboard " + name + "...").c_str());
     TourneyMakerScoreboard *scoreboard = new TourneyMakerScoreboard(name);
 
     // Create the BLE Device
-    BLEDevice::init("ESP32");
+    BLEDevice::init(name);
 
     // Create the BLE Server
     pServer = BLEDevice::createServer();
-    pServer->setCallbacks(new MyServerCallbacks());
+    pServer->setCallbacks(new MyServerCallbacks(scoreboard));
 
     // Create the BLE Service
     BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -72,11 +78,6 @@ TourneyMakerScoreboard* TourneyMakerScoreboard::setup(String name) {
 
     // Creates BLE Descriptor 0x2902: Client Characteristic Configuration Descriptor (CCCD)
     pCharacteristic->addDescriptor(new BLE2902());
-    // // Adds also the Characteristic User Description - 0x2901 descriptor
-    // descriptor_2904 = new BLE2904();
-    // descriptor_2904->setDescription("My own description for this characteristic.");
-    // descriptor_2904->setAccessPermissions(ESP_GATT_PERM_READ);  // enforce read only - default is Read|Write
-    // pCharacteristic->addDescriptor(descriptor_2904);
 
     // Start the service
     pService->start();
