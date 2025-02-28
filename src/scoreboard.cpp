@@ -40,7 +40,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
     TourneyMakerScoreboard* scoreboard;
     
     void onWrite(BLECharacteristic *pCharacteristic) {
-        std::__cxx11::string value = pCharacteristic->getValue();
+        std::string value = pCharacteristic->getValue();
         if (value.length() < 2) {
             return;
         }
@@ -85,8 +85,10 @@ TourneyMakerScoreboard* TourneyMakerScoreboard::setup(std::string name) {
     // Start advertising
     BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
-    pAdvertising->setScanResponse(false);
-    pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
+    pAdvertising->setScanResponse(true);
+    pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
+    pAdvertising->setMinPreferred(0x12);
+
     BLEDevice::startAdvertising();
     Serial.println("Waiting a client connection to notify...");
 
@@ -114,5 +116,5 @@ void TourneyMakerScoreboard::scoreReceived(uint8_t score1, uint8_t score2) {
     this->score1 = score1;
     this->score2 = score2;
     Serial.println("new score received: " + String(this->score1) + ":" + String(this->score2));
+    scoreReceivedCallback->onScoreReceived(score1, score2);
 }
-
