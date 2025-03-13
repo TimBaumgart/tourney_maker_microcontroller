@@ -140,8 +140,6 @@ void TourneyMakerScoreboard::setScore(uint8_t score1, uint8_t score2) {
 }
 
 void TourneyMakerScoreboard::scoreReceived(std::string value) {
-    Serial.println("score received");
-    Serial.println(value.c_str());
     if (value.length() < 2) {
         return;
     }
@@ -162,8 +160,8 @@ void TourneyMakerScoreboard::colorReceived(std::string value) {
     uint8_t r2 = value[3];
     uint8_t g2 = value[4];
     uint8_t b2 = value[5];
-    uint32_t color1 = (b1 << 16) | (g1 << 8) | r1;
-    uint32_t color2 = (b2 << 16) | (g2 << 8) | r2;
+    uint32_t color1 = (r1 << 16) | (g1 << 8) | b1;
+    uint32_t color2 = (r2 << 16) | (g2 << 8) | b2;
     Serial.println("new color received: " + String(color1) + " - " + String(color2));
     scoreboardChangedCallback->onColorReceived(color1, color2);
 
