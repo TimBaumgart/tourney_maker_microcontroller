@@ -83,7 +83,7 @@ TourneyMakerScoreboard* TourneyMakerScoreboard::setup(std::string name) {
     // Create a BLE Characteristic
     scoreCharacteristic = pService->createCharacteristic(
         SCORE_CHARACTERISTIC_UUID,
-        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE
+        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY
     );
     scoreCharacteristic->addDescriptor(new BLE2902());
     scoreCharacteristic->setCallbacks(new ScoreCharacteristicCallbacks(scoreboard));
@@ -91,7 +91,7 @@ TourneyMakerScoreboard* TourneyMakerScoreboard::setup(std::string name) {
     // todo: only read?
     colorCharacteristic = pService->createCharacteristic(
         COLOR_CHARACTERISTIC_UUID,
-        BLECharacteristic::PROPERTY_READ
+        BLECharacteristic::PROPERTY_WRITE
     );
     colorCharacteristic->addDescriptor(new BLE2902());
     colorCharacteristic->setCallbacks(new ColorCharacteristicCallbacks(scoreboard));
@@ -115,6 +115,13 @@ TourneyMakerScoreboard* TourneyMakerScoreboard::setup(std::string name) {
 void TourneyMakerScoreboard::connected() {
     this->deviceConnected = true;
     Serial.println("connected");
+    
+    // // set initial score without notifying
+    // uint8_t data[2];
+    // memcpy(data, &this->score1, 1); 
+    // memcpy(data + 1, &this->score2, 1);
+
+    // scoreCharacteristic->setValue(data, sizeof(data)); 
 }
 
 void TourneyMakerScoreboard::disconnected() {
@@ -134,7 +141,7 @@ void TourneyMakerScoreboard::setScore(uint8_t score1, uint8_t score2) {
     memcpy(data, &this->score1, 1);
     memcpy(data + 1, &this->score2, 1);
 
-    scoreCharacteristic->setValue(data, sizeof(data)); 
+    scoreCharacteristic->setValue(data, sizeof(data));
     scoreCharacteristic->notify();
     Serial.println("new score sent: " + String(this->score1) + ":" + String(this->score2));
 }
