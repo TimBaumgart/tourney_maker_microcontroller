@@ -3,16 +3,20 @@
 
 TourneyMakerScoreboard *scoreboard = NULL;
 
-class MyScoreReceivedCallback : public ScoreReceivedCallback {
+class MyScoreReceivedCallback : public ScoreboardChangedCallback {
     void onScoreReceived(uint8_t score1, uint8_t score2) {
       Serial.println("score received in callback " + String(score1) + ":" + String(score2));
+    }
+
+    void onColorReceived(uint32_t color1, uint32_t color2) {
+      Serial.println("color received in callback " + String(color1) + ":" + String(color2));
     }
 };
 
 void setup() {
   Serial.begin(9600);
   scoreboard = TourneyMakerScoreboard::setup("Tourney Maker Dev");
-  scoreboard->scoreReceivedCallback = new MyScoreReceivedCallback();
+  scoreboard->scoreboardChangedCallback = new MyScoreReceivedCallback();
 }
 
 void loop() {

@@ -6,7 +6,8 @@
 #include <scoreboard.h>
 
 BLEServer *pServer = NULL;
-BLECharacteristic *pCharacteristic = NULL;
+BLECharacteristic *scoreCharacteristic = NULL;
+BLECharacteristic *colorCharacteristic = NULL;
 
 #define SERVICE_UUID "621c7b43-a755-4456-b3e5-946a58bf20d9"
 #define SCORE_CHARACTERISTIC_UUID "2a08da31-68a4-4047-92af-95145bb7bd07"
@@ -35,21 +36,31 @@ class MyServerCallbacks : public BLEServerCallbacks {
         }
 };
   
-  class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
+  class ScoreCharacteristicCallbacks : public BLECharacteristicCallbacks {
     TourneyMakerScoreboard* scoreboard;
     
     void onWrite(BLECharacteristic *pCharacteristic) {
         std::string value = pCharacteristic->getValue();
-        std::string uuid = pCharacteristic->getUUID().toString();
-        if (uuid == SCORE_CHARACTERISTIC_UUID) {
-            this->scoreboard->scoreReceived(value);
-        } else if (uuid == COLOR_CHARACTERISTIC_UUID) {
-            this->scoreboard->colorReceived(value);
-        }
+        this->scoreboard->scoreReceived(value);
     }
 
     public:
-        MyCharacteristicCallbacks(TourneyMakerScoreboard *scoreboard) {
+    ScoreCharacteristicCallbacks(TourneyMakerScoreboard *scoreboard) {
+            this->scoreboard = scoreboard;
+        }
+
+  };
+
+  class ColorCharacteristicCallbacks : public BLECharacteristicCallbacks {
+    TourneyMakerScoreboard* scoreboard;
+    
+    void onWrite(BLECharacteristic *pCharacteristic) {
+        std::string value = pCharacteristic->getValue();
+        this->scoreboard->colorReceived(value);
+    }
+
+    public:
+    ColorCharacteristicCallbacks(TourneyMakerScoreboard *scoreboard) {
             this->scoreboard = scoreboard;
         }
 
@@ -70,20 +81,20 @@ TourneyMakerScoreboard* TourneyMakerScoreboard::setup(std::string name) {
     BLEService *pService = pServer->createService(SERVICE_UUID);
 
     // Create a BLE Characteristic
-    pCharacteristic = pService->createCharacteristic(
+    scoreCharacteristic = pService->createCharacteristic(
         SCORE_CHARACTERISTIC_UUID,
         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE
     );
+    scoreCharacteristic->addDescriptor(new BLE2902());
+    scoreCharacteristic->setCallbacks(new ScoreCharacteristicCallbacks(scoreboard));
 
-    pCharacteristic = pService->createCharacteristic(
+    // todo: only read?
+    colorCharacteristic = pService->createCharacteristic(
         COLOR_CHARACTERISTIC_UUID,
-        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE
+        BLECharacteristic::PROPERTY_READ
     );
-
-    pCharacteristic->setCallbacks(new MyCharacteristicCallbacks(scoreboard));
-
-    // Creates BLE Descriptor 0x2902: Client Characteristic Configuration Descriptor (CCCD)
-    pCharacteristic->addDescriptor(new BLE2902());
+    colorCharacteristic->addDescriptor(new BLE2902());
+    colorCharacteristic->setCallbacks(new ColorCharacteristicCallbacks(scoreboard));
 
     // Start the service
     pService->start();
@@ -123,23 +134,25 @@ void TourneyMakerScoreboard::setScore(uint8_t score1, uint8_t score2) {
     memcpy(data, &this->score1, 1);
     memcpy(data + 1, &this->score2, 1);
 
-    pCharacteristic->setValue(data, sizeof(data)); 
-    pCharacteristic->notify();
+    scoreCharacteristic->setValue(data, sizeof(data)); 
+    scoreCharacteristic->notify();
     Serial.println("new score sent: " + String(this->score1) + ":" + String(this->score2));
 }
 
 void TourneyMakerScoreboard::scoreReceived(std::string value) {
+    Serial.println("score received");
+    Serial.println(value.c_str());
     if (value.length() < 2) {
         return;
     }
 
     uint8_t score1 = value[0];
-    uint8_t score1 = value[1];
+    uint8_t score2 = value[1];
 
     this->score1 = score1;
     this->score2 = score2;
     Serial.println("new score received: " + String(this->score1) + ":" + String(this->score2));
-    scoreReceivedCallback->onScoreReceived(score1, score2);
+    scoreboardChangedCallback->onScoreReceived(score1, score2);
 }
 
 void TourneyMakerScoreboard::colorReceived(std::string value) {
@@ -149,5 +162,9 @@ void TourneyMakerScoreboard::colorReceived(std::string value) {
     uint8_t r2 = value[3];
     uint8_t g2 = value[4];
     uint8_t b2 = value[5];
-    Serial.println(String(r1)  + " " + g1 + " " + b1 + " - " + r2 + " " + g2 + " " + b2);
+    uint32_t color1 = (b1 << 16) | (g1 << 8) | r1;
+    uint32_t color2 = (b2 << 16) | (g2 << 8) | r2;
+    Serial.println("new color received: " + String(color1) + " - " + String(color2));
+    scoreboardChangedCallback->onColorReceived(color1, color2);
+
 }
