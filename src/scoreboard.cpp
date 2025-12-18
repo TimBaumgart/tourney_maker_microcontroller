@@ -6,16 +6,19 @@
 #include <BLE2902.h>
 #include <scoreboard.h>
 #include "esp_pm.h"
+#include "prefs.h"
 
 BLEServer *pServer = NULL;
+BLECharacteristic *idCharacteristic = NULL;
 BLECharacteristic *scoreCharacteristic = NULL;
 BLECharacteristic *colorCharacteristic = NULL;
 
 #define SERVICE_UUID "621c7b43-a755-4456-b3e5-946a58bf20d9"
+#define ID_CHARACTERISTIC_UUID "e8b0bae2-630a-4726-a9ec-ec7d562420ba"
 #define SCORE_CHARACTERISTIC_UUID "2a08da31-68a4-4047-92af-95145bb7bd07"
 #define COLOR_CHARACTERISTIC_UUID "30087a03-fad4-4c3a-a4a8-56eabcbb8d79"
 
-TourneyMakerScoreboard::TourneyMakerScoreboard(std::string name)
+TourneyMakerScoreboard::TourneyMakerScoreboard(std::string name, std::string globalFieldId)
 {
     this->name = name;
 }
@@ -40,6 +43,21 @@ public:
         delay(500);                  // give the bluetooth stack the chance to get things ready
         pServer->startAdvertising(); // restart advertising
         Serial.println("start advertising");
+    }
+};
+
+class IdCharacteristicCallbacks : public BLECharacteristicCallbacks
+{
+
+    void onWrite(BLECharacteristic *pCharacteristic)
+    {
+        std::string value = pCharacteristic->getValue();
+        ScoreboardPrefs::setGlobalFieldId(value);
+    }
+
+public:
+    IdCharacteristicCallbacks()
+    {
     }
 };
 
@@ -80,7 +98,11 @@ public:
 TourneyMakerScoreboard *TourneyMakerScoreboard::setup(std::string name)
 {
     Serial.println(("Initializing scoreboard " + name + "...").c_str());
-    TourneyMakerScoreboard *scoreboard = new TourneyMakerScoreboard(name);
+
+    std::string globalFieldId = ScoreboardPrefs::getGlobalFieldId();
+    Serial.println(("fetched id " + globalFieldId + "...").c_str());
+
+    TourneyMakerScoreboard *scoreboard = new TourneyMakerScoreboard(name, globalFieldId);
 
     // ⚙️ Enable automatic light sleep and dynamic frequency scaling
     esp_pm_config_esp32_t pm_config = {
@@ -91,7 +113,7 @@ TourneyMakerScoreboard *TourneyMakerScoreboard::setup(std::string name)
     esp_pm_configure(&pm_config);
 
     // Create the BLE Device
-    BLEDevice::init(name);
+    BLEDevice::init(globalFieldId);
 
     // Create the BLE Server
     pServer = BLEDevice::createServer();
@@ -99,6 +121,13 @@ TourneyMakerScoreboard *TourneyMakerScoreboard::setup(std::string name)
 
     // Create the BLE Service
     BLEService *pService = pServer->createService(SERVICE_UUID);
+
+    scoreboard->scoreCharacteristic = new ScoreCharacteristic(pService, scoreboard);
+    scoreboard->colorCharacteristic = new ColorCharacteristic(pService, scoreboard);
+
+    idCharacteristic = pService->createCharacteristic(ID_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE);
+    idCharacteristic->addDescriptor(new BLE2902());
+    idCharacteristic->setCallbacks(new IdCharacteristicCallbacks());
 
     // Create a BLE Characteristic
     scoreCharacteristic = pService->createCharacteristic(
@@ -149,9 +178,9 @@ void TourneyMakerScoreboard::disconnected()
     Serial.println("disconnected");
 }
 
-void TourneyMakerScoreboard::bumpScore()
+void TourneyMakerScoreboard::bumpScore(uint8_t diff1, uint8_t diff2)
 {
-    this->setScore(this->score1 + 1, this->score2 + 1);
+    this->setScore(this->score1 + diff1, this->score2 + diff2);
 }
 
 void TourneyMakerScoreboard::setScore(uint8_t score1, uint8_t score2)
