@@ -11,7 +11,21 @@ class ScoreCallbacks : public BLECharacteristicCallbacks
     void onWrite(BLECharacteristic *c) override
     {
         std::string value = c->getValue();
+        if (value.length() != 2)
+        {
+            // Ignore CCCD writes or invalid data
+            return;
+        }
+
         scoreboard->scoreReceived(value);
+        Serial.println("wroite");
+    }
+
+    void onRead(BLECharacteristic *c) override
+    {
+        // Prepare the current score
+        uint8_t data[2] = {scoreboard->getScore1(), scoreboard->getScore2()};
+        c->setValue(data, sizeof(data));
     }
 
 public:

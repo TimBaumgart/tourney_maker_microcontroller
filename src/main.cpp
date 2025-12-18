@@ -1,8 +1,12 @@
-#include <scoreboard.h>
 #include <Arduino.h>
 #include "Button.h"
-#include "prefs.h"
+#include <scoreboard.h>
+#include "ScoreboardPrefs.h"
+#include "BlinkingLED.h"
+#include "DeepSleepTimer.h"
 
+BlinkingLED led(2, 500); // LED on GPIO 2, blink every 500ms
+DeepSleepTimer sleepTimer(GPIO_NUM_0, 1000 * 10);
 TourneyMakerScoreboard *scoreboard = NULL;
 
 class MyScoreReceivedCallback : public ScoreboardChangedCallback
@@ -18,9 +22,31 @@ class MyScoreReceivedCallback : public ScoreboardChangedCallback
   }
 };
 
+class MyScoreboardStatusCallback : public ScoreboardStatusCallback
+{
+  void onConnected()
+  {
+    led.stop(false);
+    sleepTimer.stop();
+  }
+
+  void onDisconnected()
+  {
+    led.stop(false);
+    sleepTimer.start();
+  }
+
+  void onStartAdvertisement()
+  {
+    led.start();
+    sleepTimer.start();
+  }
+};
+
 static void onSingleClick(void *button_handle, void *usr_data)
 {
   Serial.println("onSingleClick");
+  sleepTimer.start();
   scoreboard->bumpScore(1, 0);
 }
 
@@ -39,18 +65,22 @@ static void onLongPressStart(void *button_handle, void *usr_data)
 void setup()
 {
   Serial.begin(9600);
-  scoreboard = TourneyMakerScoreboard::setup("Tourney Maker Dev");
+
+  ScoreboardPrefs::begin();
+
+  scoreboard = TourneyMakerScoreboard::setup();
   scoreboard->scoreboardChangedCallback = new MyScoreReceivedCallback();
+  scoreboard->scoreboardStatusCallback = new MyScoreboardStatusCallback();
+  scoreboard->startAdvertising();
 
   Button *btn = new Button(GPIO_NUM_0, false);
   btn->attachSingleClickEventCb(&onSingleClick, NULL);
   btn->attachDoubleClickEventCb(&onDoubleClick, NULL);
   btn->attachLongPressStartEventCb(&onLongPressStart, NULL);
-
-  ScoreboardPrefs::begin();
-  std::string globalFieldId = ScoreboardPrefs::getGlobalFieldId();
 }
 
 void loop()
 {
+  led.update();
+  sleepTimer.update();
 }
