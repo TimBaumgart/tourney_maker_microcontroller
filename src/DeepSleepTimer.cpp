@@ -5,7 +5,7 @@ DeepSleepTimer::DeepSleepTimer(gpio_num_t wakeUpPin, unsigned long timeoutMs)
     this->timeoutMs = timeoutMs;
     enabled = false;
     startTime = 0;
-    esp_sleep_enable_ext0_wakeup(wakeUpPin, 0);
+    esp_sleep_enable_ext0_wakeup(wakeUpPin, 1);
 }
 
 void DeepSleepTimer::start()

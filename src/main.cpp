@@ -6,7 +6,7 @@
 #include "DeepSleepTimer.h"
 
 BlinkingLED led(2, 500); // LED on GPIO 2, blink every 500ms
-DeepSleepTimer sleepTimer(GPIO_NUM_0, 1000 * 10);
+DeepSleepTimer sleepTimer(GPIO_NUM_25, 1000 * 30);
 TourneyMakerScoreboard *scoreboard = NULL;
 
 class MyScoreReceivedCallback : public ScoreboardChangedCallback
@@ -46,7 +46,7 @@ class MyScoreboardStatusCallback : public ScoreboardStatusCallback
 static void onSingleClick(void *button_handle, void *usr_data)
 {
   Serial.println("onSingleClick");
-  sleepTimer.start();
+  sleepTimer.reset();
   scoreboard->bumpScore(1, 0);
 }
 
@@ -73,10 +73,29 @@ void setup()
   scoreboard->scoreboardStatusCallback = new MyScoreboardStatusCallback();
   scoreboard->startAdvertising();
 
-  Button *btn = new Button(GPIO_NUM_0, false);
+  Button *btn = new Button(GPIO_NUM_25, true);
   btn->attachSingleClickEventCb(&onSingleClick, NULL);
   btn->attachDoubleClickEventCb(&onDoubleClick, NULL);
   btn->attachLongPressStartEventCb(&onLongPressStart, NULL);
+
+  Button *score2Up = new Button(GPIO_NUM_35, true);
+  score2Up->attachSingleClickEventCb([](void *button_handle, void *usr_data)
+                                     { scoreboard->bumpScore(0, 1); }, NULL);
+
+  Button *score2Down = new Button(GPIO_NUM_34, true);
+  score2Down->attachSingleClickEventCb([](void *button_handle, void *usr_data)
+                                       { scoreboard->bumpScore(0, -1); }, NULL);
+
+  Button *score1Up = new Button(GPIO_NUM_32, true);
+  score1Up->attachSingleClickEventCb([](void *button_handle, void *usr_data)
+                                     { scoreboard->bumpScore(1, 0); }, NULL);
+
+  Button *score1Down = new Button(GPIO_NUM_26, true);
+  score1Down->attachSingleClickEventCb([](void *button_handle, void *usr_data)
+                                       { scoreboard->bumpScore(-1, 0); }, NULL);
+
+  pinMode(5, OUTPUT);
+  // digitalWrite(5, HIGH);
 }
 
 void loop()

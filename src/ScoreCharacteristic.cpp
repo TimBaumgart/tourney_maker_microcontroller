@@ -18,7 +18,6 @@ class ScoreCallbacks : public BLECharacteristicCallbacks
         }
 
         scoreboard->scoreReceived(value);
-        Serial.println("wroite");
     }
 
     void onRead(BLECharacteristic *c) override
