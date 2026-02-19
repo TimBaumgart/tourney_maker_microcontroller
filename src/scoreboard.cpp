@@ -8,6 +8,8 @@
 #include "ScoreboardPrefs.h"
 #include "Scoreboard.h"
 
+#include <ynvisible_scoreboard.h>
+
 BLEServer *pServer = NULL;
 
 #define SERVICE_UUID "621c7b43-a755-4456-b3e5-946a58bf20d9"
@@ -115,6 +117,7 @@ void TourneyMakerScoreboard::setScore(uint8_t score1, uint8_t score2)
 
     scoreCharacteristic->notify(score1, score2);
     Serial.println("new score sent: " + String(this->score1) + ":" + String(this->score2));
+    sendYnvisibleScore(String(score2), 2, i2cAddress);
 }
 
 void TourneyMakerScoreboard::scoreReceived(std::string value)

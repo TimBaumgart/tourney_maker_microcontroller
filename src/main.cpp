@@ -5,8 +5,10 @@
 #include "BlinkingLED.h"
 #include "DeepSleepTimer.h"
 
+#include <ynvisible_scoreboard.h>
+
 BlinkingLED led(2, 500); // LED on GPIO 2, blink every 500ms
-DeepSleepTimer sleepTimer(GPIO_NUM_25, 1000 * 30);
+DeepSleepTimer sleepTimer(GPIO_NUM_25, 1000 * 60 * 5);
 TourneyMakerScoreboard *scoreboard = NULL;
 
 class MyScoreReceivedCallback : public ScoreboardChangedCallback
@@ -14,6 +16,8 @@ class MyScoreReceivedCallback : public ScoreboardChangedCallback
   void onScoreReceived(uint8_t score1, uint8_t score2)
   {
     Serial.println("score received in callback " + String(score1) + ":" + String(score2));
+
+    sendYnvisibleScore(String(score2), 2, i2cAddress);
   }
 
   void onColorReceived(uint32_t color1, uint32_t color2)
@@ -73,19 +77,19 @@ void setup()
   scoreboard->scoreboardStatusCallback = new MyScoreboardStatusCallback();
   scoreboard->startAdvertising();
 
-  Button *btn = new Button(GPIO_NUM_25, true);
-  btn->attachSingleClickEventCb(&onSingleClick, NULL);
-  btn->attachDoubleClickEventCb(&onDoubleClick, NULL);
-  btn->attachLongPressStartEventCb(&onLongPressStart, NULL);
+  // right button on esp board
+  Button *bootBtn = new Button(GPIO_NUM_0, false);
+  bootBtn->attachSingleClickEventCb(&onSingleClick, NULL);
+  bootBtn->attachDoubleClickEventCb(&onDoubleClick, NULL);
+  bootBtn->attachLongPressStartEventCb(&onLongPressStart, NULL);
 
-  Button *score2Up = new Button(GPIO_NUM_35, true);
-  score2Up->attachSingleClickEventCb([](void *button_handle, void *usr_data)
-                                     { scoreboard->bumpScore(0, 1); }, NULL);
+  // reset hall sensor
+  Button *resetBtn = new Button(GPIO_NUM_25, true);
+  resetBtn->attachSingleClickEventCb(&onSingleClick, NULL);
+  resetBtn->attachDoubleClickEventCb(&onDoubleClick, NULL);
+  resetBtn->attachLongPressStartEventCb(&onLongPressStart, NULL);
 
-  Button *score2Down = new Button(GPIO_NUM_34, true);
-  score2Down->attachSingleClickEventCb([](void *button_handle, void *usr_data)
-                                       { scoreboard->bumpScore(0, -1); }, NULL);
-
+  // left hall sensors
   Button *score1Up = new Button(GPIO_NUM_32, true);
   score1Up->attachSingleClickEventCb([](void *button_handle, void *usr_data)
                                      { scoreboard->bumpScore(1, 0); }, NULL);
@@ -93,6 +97,15 @@ void setup()
   Button *score1Down = new Button(GPIO_NUM_26, true);
   score1Down->attachSingleClickEventCb([](void *button_handle, void *usr_data)
                                        { scoreboard->bumpScore(-1, 0); }, NULL);
+
+  // right hall sensors
+  Button *score2Up = new Button(GPIO_NUM_35, true);
+  score2Up->attachSingleClickEventCb([](void *button_handle, void *usr_data)
+                                     { scoreboard->bumpScore(0, 1); }, NULL);
+
+  Button *score2Down = new Button(GPIO_NUM_34, true);
+  score2Down->attachSingleClickEventCb([](void *button_handle, void *usr_data)
+                                       { scoreboard->bumpScore(0, -1); }, NULL);
 
   pinMode(5, OUTPUT);
   // digitalWrite(5, HIGH);
