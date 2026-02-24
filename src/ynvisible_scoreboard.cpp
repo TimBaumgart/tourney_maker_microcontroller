@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include "ynvisible_scoreboard.h"
 
 String padToLength(const String &input, char padChar, int numModules)
 {
@@ -58,4 +59,12 @@ void sendYnvisibleScore(const String &rawContent, int numModules, uint8_t i2c_ad
     }
     Serial.println();
     Wire.endTransmission();
+}
+
+void setYnvisibleScore(uint8_t score1, uint8_t score2)
+{
+    String combinedScore = padToLength(String(score1), ' ', 2) + padToLength(String(score2), ' ', 2);
+
+    Serial.println("combined score: " + combinedScore);
+    sendYnvisibleScore(combinedScore, 4, i2cAddress);
 }

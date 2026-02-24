@@ -98,8 +98,32 @@ void TourneyMakerScoreboard::startAdvertising()
     scoreboardStatusCallback->onStartAdvertisement();
 }
 
-void TourneyMakerScoreboard::bumpScore(uint8_t diff1, uint8_t diff2)
+boolean validate(int8_t current, int8_t diff)
 {
+    uint8_t newValue = current + diff;
+    if (diff > 0 && newValue < current)
+    {
+        Serial.println("invalid score change: " + String(current) + " -> " + String(newValue));
+        return false;
+    }
+
+    if (diff < 0 && newValue > current)
+    {
+        Serial.println("invalid score change: " + String(current) + " -> " + String(newValue));
+        return false;
+    }
+
+    Serial.println("validated score change: " + String(current) + " -> " + String(newValue));
+    return true;
+}
+
+void TourneyMakerScoreboard::bumpScore(int8_t diff1, int8_t diff2)
+{
+    if (!validate(this->score1, diff1) || !validate(this->score2, diff2))
+    {
+        return;
+    }
+
     this->setScore(this->score1 + diff1, this->score2 + diff2);
 }
 
@@ -109,6 +133,7 @@ void TourneyMakerScoreboard::setScore(uint8_t score1, uint8_t score2)
     this->score2 = score2;
 
     ScoreboardPrefs::setScore(score1, score2);
+    scoreboardChangedCallback->onScoreChanged(score1, score2);
 
     if (!deviceConnected)
     {
@@ -117,7 +142,6 @@ void TourneyMakerScoreboard::setScore(uint8_t score1, uint8_t score2)
 
     scoreCharacteristic->notify(score1, score2);
     Serial.println("new score sent: " + String(this->score1) + ":" + String(this->score2));
-    sendYnvisibleScore(String(score2), 2, i2cAddress);
 }
 
 void TourneyMakerScoreboard::scoreReceived(std::string value)
@@ -133,7 +157,7 @@ void TourneyMakerScoreboard::scoreReceived(std::string value)
     this->score1 = score1;
     this->score2 = score2;
     Serial.println("new score received: " + String(this->score1) + ":" + String(this->score2));
-    scoreboardChangedCallback->onScoreReceived(score1, score2);
+    scoreboardChangedCallback->onScoreChanged(score1, score2);
 }
 
 void TourneyMakerScoreboard::colorReceived(std::string value)
