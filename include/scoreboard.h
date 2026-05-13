@@ -2,6 +2,7 @@
 #include <ScoreCharacteristic.h>
 #include <ColorCharacteristic.h>
 #include <IdCharacteristic.h>
+#include <BatteryCharacteristic.h>
 
 class ScoreboardChangedCallback
 {
@@ -27,6 +28,7 @@ private:
     IdCharacteristic *idCharacteristic;
     ScoreCharacteristic *scoreCharacteristic;
     ColorCharacteristic *colorCharacteristic;
+    BatteryCharacteristic *batteryCharacteristic;
     TourneyMakerScoreboard(std::string id);
 
 public:
@@ -45,4 +47,5 @@ public:
     static TourneyMakerScoreboard *setup();
     // void setScoreReceivedCallback(ScoreReceivedCallback* cb);
     // ScoreReceivedCallback* getScoreReceivedCallback();
+    uint8_t readBatteryPercentage();
 };

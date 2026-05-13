@@ -9,8 +9,10 @@
 #include "Scoreboard.h"
 
 #include <ynvisible_scoreboard.h>
+#include "BatteryManager.h"
 
 BLEServer *pServer = NULL;
+BatteryManager batteryManager(GPIO_NUM_33);
 
 #define SERVICE_UUID "621c7b43-a755-4456-b3e5-946a58bf20d9"
 
@@ -63,6 +65,7 @@ TourneyMakerScoreboard *TourneyMakerScoreboard::setup()
     scoreboard->idCharacteristic = new IdCharacteristic(pService);
     scoreboard->scoreCharacteristic = new ScoreCharacteristic(pService, scoreboard);
     scoreboard->colorCharacteristic = new ColorCharacteristic(pService, scoreboard);
+    scoreboard->batteryCharacteristic = new BatteryCharacteristic(pService, scoreboard);
 
     // Start the service
     pService->start();
@@ -182,4 +185,9 @@ uint8_t TourneyMakerScoreboard::getScore1()
 uint8_t TourneyMakerScoreboard::getScore2()
 {
     return score2;
+}
+
+uint8_t TourneyMakerScoreboard::readBatteryPercentage()
+{
+    return batteryManager.readPercentage();
 }
