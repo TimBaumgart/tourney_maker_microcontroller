@@ -10,7 +10,7 @@
 #include "BatteryManager.h"
 
 BlinkingLED led(2, 500); // LED on GPIO 2, blink every 500ms
-Buzzer buzzer(5, 50);
+Buzzer buzzer(5, 100);
 DeepSleepTimer sleepTimer(GPIO_NUM_25, 1000 * 60 * 60);
 TourneyMakerScoreboard *scoreboard = NULL;
 
