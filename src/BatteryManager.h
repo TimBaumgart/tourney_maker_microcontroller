@@ -13,7 +13,7 @@ public:
     BatteryManager(int pin);
 
     // get battery level
-    int readRawValue();
+    uint16_t readRawValue();
     uint8_t readPercentage();
 };
 

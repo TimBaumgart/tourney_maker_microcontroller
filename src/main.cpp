@@ -100,4 +100,5 @@ void loop()
 {
   led.update();
   sleepTimer.update();
+  Serial.println(String(analogRead(GPIO_NUM_33))); // Print the raw analog value from GPIO 33
 }
